@@ -54,4 +54,8 @@ dependencies {
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    // QR Code generator
+    implementation("com.google.zxing:core:3.5.2")
+
+
 }
