@@ -1,5 +1,6 @@
 package com.mdm.backend.controller;
 
+import java.util.List;
 import com.mdm.backend.dto.DeviceInfoRequest;
 import com.mdm.backend.model.DeviceInfo;
 import com.mdm.backend.repository.DeviceInfoRepository;
@@ -9,13 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/device-info")
 @RequiredArgsConstructor
 public class DeviceInfoController {
 
     private final DeviceInfoRepository deviceInfoRepository;
 
-    @PostMapping
+    @PostMapping("/device-info")
     public ResponseEntity<String> saveDeviceInfo(@Valid @RequestBody DeviceInfoRequest request) {
         DeviceInfo deviceInfo = new DeviceInfo();
         deviceInfo.setDeviceId(request.getDeviceId());
@@ -28,5 +28,10 @@ public class DeviceInfoController {
         deviceInfo.setImei(request.getImei());
         deviceInfoRepository.save(deviceInfo);
         return ResponseEntity.ok("Device info saved successfully");
+    }
+
+    @GetMapping("/device-info/{deviceId}")
+    public ResponseEntity<List<DeviceInfo>> getDeviceInfo(@PathVariable String deviceId) {
+        return ResponseEntity.ok(deviceInfoRepository.findByDeviceId(deviceId));
     }
 }

@@ -11,13 +11,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/app-inventory")
 @RequiredArgsConstructor
 public class AppInventoryController {
 
     private final AppInventoryRepository appInventoryRepository;
 
-    @PostMapping
+    @PostMapping("/app-inventory")
     public ResponseEntity<String> saveAppInventory(@Valid @RequestBody List<AppInventoryRequest> apps) {
         for (AppInventoryRequest request : apps) {
             AppInventory app = new AppInventory();
@@ -32,5 +31,10 @@ public class AppInventoryController {
             appInventoryRepository.save(app);
         }
         return ResponseEntity.ok("App inventory saved successfully");
+    }
+
+    @GetMapping("/app-inventory/{deviceId}")
+    public ResponseEntity<List<AppInventory>> getAppInventory(@PathVariable String deviceId) {
+        return ResponseEntity.ok(appInventoryRepository.findByDeviceId(deviceId));
     }
 }
