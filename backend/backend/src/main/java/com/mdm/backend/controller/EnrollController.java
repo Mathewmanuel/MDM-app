@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class EnrollController {
 
     private final EnrolledDeviceRepository enrolledDeviceRepository;
@@ -38,4 +39,5 @@ public class EnrollController {
         String token = UUID.randomUUID().toString();
         return ResponseEntity.ok(Map.of("token", token));
     }
+
 }
