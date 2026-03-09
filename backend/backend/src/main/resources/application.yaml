@@ -2,13 +2,13 @@ spring:
   application:
     name: backend
   datasource:
-    url: jdbc:postgresql://localhost:5432/mdm_db
-    username: postgres
-    password: admin123
+    url: ${DATABASE_URL}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 server:
-  port: 8081
+  port: ${PORT:8081}
