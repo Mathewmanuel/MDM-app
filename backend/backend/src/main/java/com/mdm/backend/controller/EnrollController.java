@@ -49,6 +49,28 @@ public class EnrollController {
         return ResponseEntity.ok("Device enrolled successfully");
     }
 
+    @PostMapping("/enroll-qr")
+    public ResponseEntity<String> enrollViaQr(@RequestBody Map<String, String> body) {
+        String deviceId = body.get("deviceId");
+        if (deviceId == null || deviceId.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Device ID required");
+        }
+
+        // Check if already enrolled
+        if (enrolledDeviceRepository.findByDeviceId(deviceId).isPresent()) {
+            return ResponseEntity.ok("Already enrolled");
+        }
+
+        // Enroll the device with QR tag
+        EnrolledDevice device = new EnrolledDevice();
+        device.setDeviceId(deviceId);
+        device.setEnrollmentToken("QR_PROVISIONED");
+        device.setEnrolledAt(LocalDateTime.now());
+        enrolledDeviceRepository.save(device);
+
+        return ResponseEntity.ok("Device enrolled via QR successfully");
+    }
+
     @GetMapping("/devices")
     public ResponseEntity<List<EnrolledDevice>> getAllDevices() {
         return ResponseEntity.ok(enrolledDeviceRepository.findAll());

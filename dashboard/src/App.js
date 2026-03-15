@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 const API = "https://mdm-app-production.up.railway.app";
 
@@ -40,6 +41,16 @@ const HEALTH_COLORS = {
   info:    { bg: "#0d1f3c", text: "#60a5fa", dot: "#3b82f6", label: "Missing Data" },
 };
 
+const QR_PAYLOAD = JSON.stringify({
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.mdm.agent/.DeviceAdminReceiver",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://mdm-app-production.up.railway.app/mdm.apk",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "dcdf18f66de2a936306e68ce2fdcde36e3d951f846f68c8b64644f6c5d3c7283",
+  "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": true,
+  "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+    "server_url": "https://mdm-app-production.up.railway.app"
+  }
+});
+
 export default function App() {
   const [view, setView] = useState("devices");
   const [devices, setDevices] = useState([]);
@@ -63,7 +74,6 @@ export default function App() {
     try {
       const devs = await fetchJSON(`${API}/devices`);
       setDevices(devs);
-      // load info + inventory for all devices in parallel
       const infoResults = await Promise.allSettled(
         devs.map(d => fetchJSON(`${API}/device-info/${d.deviceId}`))
       );
@@ -73,7 +83,7 @@ export default function App() {
       const infoMap = {}, appMap = {};
       devs.forEach((d, i) => {
         infoMap[d.deviceId] = infoResults[i].status === "fulfilled" ? (infoResults[i].value[0] || null) : null;
-        appMap[d.deviceId] = appResults[i].status === "fulfilled" ? infoResults[i].value : [];
+        appMap[d.deviceId] = appResults[i].status === "fulfilled" ? appResults[i].value : [];
       });
       setDeviceInfoMap(infoMap);
       setAppInventoryMap(appMap);
@@ -130,7 +140,6 @@ export default function App() {
 
   const missingFields = selectedDevice ? getMissingFields(deviceInfo) : [];
 
-  // Health summary counts
   const healthCounts = { healthy: 0, warning: 0, critical: 0, info: 0 };
   devices.forEach(d => { healthCounts[getHealthStatus(d, deviceInfoMap, appInventoryMap)]++; });
 
@@ -141,6 +150,8 @@ export default function App() {
 
   return (
     <div style={s.root}>
+      <style>{`*{box-sizing:border-box;}body{margin:0;}@keyframes spin{to{transform:rotate(360deg)}}.hrow:hover{background:#0d1424!important;cursor:pointer;}.arow:hover{background:#0d1424!important;}.dcard:hover{border-color:#2563eb!important;transform:translateY(-2px);transition:all 0.2s;}`}</style>
+
       {/* SIDEBAR */}
       <aside style={s.sidebar}>
         <div style={s.brand}>
@@ -164,6 +175,8 @@ export default function App() {
             onClick={() => { setView("devices"); setSelectedDevice(null); }} />
           <NavBtn icon={<KeyIcon />} label="Enrollment Tokens" active={view==="token"}
             onClick={() => setView("token")} />
+          <NavBtn icon={<QrIcon />} label="QR Provisioning" active={view==="qr"}
+            onClick={() => setView("qr")} />
           <NavBtn icon={<AlertIcon />} label="Health Check" active={view==="health"}
             onClick={() => setView("health")}
             badge={healthCounts.critical + healthCounts.warning > 0 ? healthCounts.critical + healthCounts.warning : null} />
@@ -185,6 +198,7 @@ export default function App() {
             <span style={s.breadcrumbRoot} onClick={() => { setView("devices"); setSelectedDevice(null); }}>Devices</span>
             {view === "detail" && selectedDevice && (<><span style={s.sep}>›</span><span style={s.breadcrumbCur}>{selectedDevice.deviceId.slice(0,20)}…</span></>)}
             {view === "token" && (<><span style={s.sep}>›</span><span style={s.breadcrumbCur}>Enrollment Tokens</span></>)}
+            {view === "qr" && (<><span style={s.sep}>›</span><span style={s.breadcrumbCur}>QR Provisioning</span></>)}
             {view === "health" && (<><span style={s.sep}>›</span><span style={s.breadcrumbCur}>Health Check</span></>)}
           </div>
           <div style={{display:"flex",gap:10,alignItems:"center"}}>
@@ -207,8 +221,6 @@ export default function App() {
                   <p style={s.pageSub}>{devices.length} enrolled · {healthCounts.critical} critical · {healthCounts.warning} warnings</p>
                 </div>
               </div>
-
-              {/* Health Filter Pills */}
               <div style={s.filterRow}>
                 {[
                   {id:"all", label:`All (${devices.length})`},
@@ -221,7 +233,6 @@ export default function App() {
                     onClick={() => setHealthFilter(f.id)}>{f.label}</button>
                 ))}
               </div>
-
               {loading ? <Loader /> : (
                 <div style={s.deviceGrid}>
                   {filteredDevices.map(d => {
@@ -230,7 +241,7 @@ export default function App() {
                     const info = deviceInfoMap[d.deviceId];
                     const missing = getMissingFields(info);
                     return (
-                      <div key={d.id} style={s.deviceCard} onClick={() => loadDeviceDetails(d)}>
+                      <div key={d.id} className="dcard" style={s.deviceCard} onClick={() => loadDeviceDetails(d)}>
                         <div style={s.dcTop}>
                           <div style={s.dcAvatar}>{d.deviceId.slice(0,2).toUpperCase()}</div>
                           <div style={{...s.healthBadge, background:hc.bg, color:hc.text}}>
@@ -271,8 +282,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              {/* Missing Data Alert */}
               {missingFields.length > 0 && (
                 <div style={s.missingAlert}>
                   <div style={s.missingAlertTitle}>⚠ Missing Device Data</div>
@@ -289,7 +298,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-
               {detailLoading ? <Loader /> : (
                 <div style={s.detailGrid}>
                   <div style={s.detailLeft}>
@@ -312,22 +320,10 @@ export default function App() {
                       <div style={s.noDataCard}>
                         <div style={s.noDataIcon}>⚠</div>
                         <div style={s.noDataTitle}>No Device Info</div>
-                        <div style={s.noDataDesc}>This device has not sent hardware information yet. Trigger a sync from the device.</div>
+                        <div style={s.noDataDesc}>This device has not sent hardware information yet.</div>
                       </div>
                     )}
-
-                    {/* Location Placeholder */}
-                    <InfoCard title="LOCATION">
-                      <div style={s.locationPlaceholder}>
-                        <div style={s.locationIcon}>📍</div>
-                        <div style={s.locationTitle}>Location Tracking</div>
-                        <div style={s.locationDesc}>Location tracking requires device permission. Enable it in the Android app to see the last known location here.</div>
-                        <div style={s.locationComingSoon}>Coming Soon</div>
-                      </div>
-                    </InfoCard>
                   </div>
-
-                  {/* App Inventory */}
                   <div style={s.appPanel}>
                     <div style={s.appPanelHead}>
                       <div style={s.appPanelTitle}>APP INVENTORY</div>
@@ -397,7 +393,7 @@ export default function App() {
                   const apps = appInventoryMap[d.deviceId] || [];
                   const missing = getMissingFields(info);
                   return (
-                    <div key={d.id} style={s.healthRow} onClick={() => loadDeviceDetails(d)}>
+                    <div key={d.id} className="hrow" style={s.healthRow} onClick={() => loadDeviceDetails(d)}>
                       <div style={{flex:2}}>
                         <div style={s.healthRowId}>{d.deviceId.slice(0,20)}{d.deviceId.length>20?"…":""}</div>
                         <div style={s.healthRowDate}>{new Date(d.enrolledAt).toLocaleDateString()}</div>
@@ -467,6 +463,63 @@ export default function App() {
               </div>
             </>
           )}
+
+          {/* QR PROVISIONING */}
+          {view === "qr" && (
+            <>
+              <div style={s.pageHead}>
+                <div>
+                  <h1 style={s.pageTitle}>QR Provisioning</h1>
+                  <p style={s.pageSub}>Scan during device setup to auto-install MDM as Device Owner</p>
+                </div>
+              </div>
+              <div style={s.qrWrap}>
+                <div style={s.qrCard}>
+                  <div style={s.qrCardTitle}>Device Owner Provisioning QR</div>
+                  <div style={s.qrCardDesc}>
+                    On a factory reset device, tap the welcome screen <strong style={{color:"#60a5fa"}}>6 times</strong> to open the QR scanner.
+                    Android will automatically download and install the MDM app as Device Owner — no manual setup needed.
+                  </div>
+                  <div style={s.qrBox}>
+                    <QRCode
+                      value={QR_PAYLOAD}
+                      size={220}
+                      level="M"
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                    />
+                  </div>
+                  <div style={s.qrWarnRow}>
+                    <span style={s.qrWarnText}>⚠ Ensure the device has WiFi access before scanning</span>
+                  </div>
+                  <div style={s.qrMetaRow}>
+                    <div style={s.qrMeta}><span style={s.qrMetaLabel}>APK URL</span><span style={s.qrMetaVal}>mdm-app-production.up.railway.app/mdm.apk</span></div>
+                    <div style={s.qrMeta}><span style={s.qrMetaLabel}>Component</span><span style={s.qrMetaVal}>com.mdm.agent/.DeviceAdminReceiver</span></div>
+                  </div>
+                </div>
+
+                <div style={s.qrStepsCard}>
+                  <div style={s.qrStepsTitle}>How It Works</div>
+                  {[
+                    ["1", "Factory reset the target Android device"],
+                    ["2", "On the welcome screen, tap 6 times to trigger QR mode"],
+                    ["3", "Connect to WiFi when prompted by the setup wizard"],
+                    ["4", "Point the camera at this QR code to scan it"],
+                    ["5", "Android downloads & installs MDM app automatically"],
+                    ["6", "App enrolls as Device Owner and sends data to dashboard"],
+                  ].map(([num, text]) => (
+                    <div key={num} style={s.qrStep}>
+                      <div style={s.qrStepNum}>{num}</div>
+                      <div style={s.qrStepText}>{text}</div>
+                    </div>
+                  ))}
+                  <div style={s.qrNote}>
+                    💡 This method sets the app as Device Owner — giving it full management capabilities over the device.
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -508,7 +561,7 @@ function Row({ label, value, mono, missing, restricted }) {
 
 function AppRow({ app }) {
   return (
-    <div style={s.appRow}>
+    <div className="arow" style={s.appRow}>
       <div style={s.appAvatar}>{app.appName?.[0]?.toUpperCase()||"?"}</div>
       <div style={s.appInfo}>
         <div style={s.appName}>{app.appName}</div>
@@ -523,7 +576,6 @@ function Loader() {
   return (
     <div style={{display:"flex",justifyContent:"center",padding:80}}>
       <div style={{width:32,height:32,border:"3px solid #1e2d45",borderTop:"3px solid #3b82f6",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
@@ -536,6 +588,7 @@ function PhoneIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fi
 function KeyIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>; }
 function AlertIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>; }
 function SyncIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{marginRight:6}}><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>; }
+function QrIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 0h-2v2h2v-2zm0 4h-2v2h2v-2zm2-4h-2v2h2v-2zm-4-2h-2v2h2v-2zm2 2h-2v2h2v-2zm2 2h-2v2h2v-2zm-2 2h-2v2h2v-2z"/></svg>; }
 
 const s = {
   root:{display:"flex",height:"100vh",background:"#070b14",color:"#e2e8f0",fontFamily:"-apple-system,'SF Pro Display','Segoe UI',sans-serif",overflow:"hidden"},
@@ -572,7 +625,7 @@ const s = {
   filterPill:{padding:"6px 14px",background:"#0a1020",border:"1px solid #1e2d45",borderRadius:20,color:"#4b5563",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700},
   filterPillActive:{background:"#1e3a8a",border:"1px solid #3b82f6",color:"#93c5fd"},
   deviceGrid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:16},
-  deviceCard:{background:"#0a1020",border:"1px solid #111827",borderRadius:16,padding:20,cursor:"pointer",transition:"border-color 0.2s"},
+  deviceCard:{background:"#0a1020",border:"1px solid #111827",borderRadius:16,padding:20,cursor:"pointer"},
   dcTop:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14},
   dcAvatar:{width:46,height:46,borderRadius:12,background:"#0f1f3d",border:"1px solid #1e3a5f",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:900,color:"#3b82f6"},
   healthBadge:{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:800},
@@ -605,11 +658,6 @@ const s = {
   noDataIcon:{fontSize:28,marginBottom:10},
   noDataTitle:{fontSize:14,fontWeight:900,color:"#374151",marginBottom:6},
   noDataDesc:{fontSize:12,color:"#1e3a5f",fontWeight:700,lineHeight:1.5},
-  locationPlaceholder:{padding:"20px 16px",textAlign:"center"},
-  locationIcon:{fontSize:28,marginBottom:10},
-  locationTitle:{fontSize:14,fontWeight:900,color:"#e2e8f0",marginBottom:6},
-  locationDesc:{fontSize:12,color:"#374151",fontWeight:700,lineHeight:1.5,marginBottom:12},
-  locationComingSoon:{display:"inline-block",padding:"4px 14px",background:"#0f1f3d",border:"1px solid #1e3a5f",borderRadius:20,fontSize:11,color:"#3b82f6",fontWeight:800},
   appPanel:{background:"#0a1020",border:"1px solid #111827",borderRadius:14,overflow:"hidden"},
   appPanelHead:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:"1px solid #111827",background:"#080e1c"},
   appPanelTitle:{fontSize:10,fontWeight:900,color:"#1e3a5f",letterSpacing:1.8},
@@ -634,7 +682,7 @@ const s = {
   healthSumLabel:{fontSize:12,color:"#4b5563",fontWeight:700,marginTop:6},
   healthTable:{background:"#0a1020",border:"1px solid #111827",borderRadius:14,overflow:"hidden"},
   healthTableHead:{display:"flex",padding:"12px 20px",background:"#080e1c",borderBottom:"1px solid #111827",fontSize:10,color:"#1e3a5f",fontWeight:900,letterSpacing:1.5},
-  healthRow:{display:"flex",alignItems:"center",padding:"14px 20px",borderBottom:"1px solid #0d1424",cursor:"pointer"},
+  healthRow:{display:"flex",alignItems:"center",padding:"14px 20px",borderBottom:"1px solid #0d1424"},
   healthRowId:{fontSize:12,fontWeight:800,color:"#e2e8f0"},
   healthRowDate:{fontSize:10,color:"#374151",fontWeight:700,marginTop:3},
   allGood:{fontSize:12,color:"#4ade80",fontWeight:800},
@@ -653,4 +701,22 @@ const s = {
   copyBtn:{padding:"8px 16px",background:"#1d4ed8",border:"none",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:900,flexShrink:0},
   copiedBtn:{background:"#15803d"},
   tokenWarn:{fontSize:12,color:"#f59e0b",background:"#1a1005",border:"1px solid #78350f",borderRadius:8,padding:"9px 14px",fontWeight:700},
+  // QR styles
+  qrWrap:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,maxWidth:860},
+  qrCard:{background:"#0a1020",border:"1px solid #111827",borderRadius:16,padding:28},
+  qrCardTitle:{fontSize:18,fontWeight:900,color:"#f1f5f9",marginBottom:10,letterSpacing:-0.4},
+  qrCardDesc:{fontSize:13,color:"#4b5563",fontWeight:700,lineHeight:1.6,marginBottom:22},
+  qrBox:{background:"#fff",padding:20,display:"inline-block",borderRadius:12,marginBottom:18},
+  qrWarnRow:{marginBottom:16},
+  qrWarnText:{fontSize:12,color:"#f59e0b",fontWeight:700},
+  qrMetaRow:{display:"flex",flexDirection:"column",gap:8,background:"#050a14",borderRadius:10,padding:14,border:"1px solid #1e2d45"},
+  qrMeta:{display:"flex",flexDirection:"column",gap:2},
+  qrMetaLabel:{fontSize:9,color:"#1e3a5f",fontWeight:900,letterSpacing:1.5},
+  qrMetaVal:{fontSize:11,color:"#60a5fa",fontFamily:"monospace",fontWeight:700,wordBreak:"break-all"},
+  qrStepsCard:{background:"#0a1020",border:"1px solid #111827",borderRadius:16,padding:28},
+  qrStepsTitle:{fontSize:15,fontWeight:900,color:"#f1f5f9",marginBottom:18,letterSpacing:-0.3},
+  qrStep:{display:"flex",alignItems:"flex-start",gap:14,marginBottom:16},
+  qrStepNum:{width:26,height:26,borderRadius:"50%",background:"#0f1f3d",border:"1px solid #1e3a5f",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:"#3b82f6",flexShrink:0},
+  qrStepText:{fontSize:13,color:"#6b7280",fontWeight:700,lineHeight:1.5,paddingTop:3},
+  qrNote:{background:"#0d1f3c",border:"1px solid #1e3a5f",borderRadius:10,padding:"12px 14px",fontSize:12,color:"#60a5fa",fontWeight:700,lineHeight:1.5,marginTop:6},
 };
