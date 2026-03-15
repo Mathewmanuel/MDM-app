@@ -13,6 +13,9 @@ interface MdmApiService {
     @POST("enroll")
     suspend fun enrollDevice(@Body request: EnrollRequest): Response<ResponseBody>
 
+    @POST("enroll-qr")
+    suspend fun enrollViaQr(@Body body: Map<String, String>): Response<ResponseBody>
+
     @POST("device-info")
     suspend fun sendDeviceInfo(@Body request: DeviceInfoRequest): Response<ResponseBody>
 
