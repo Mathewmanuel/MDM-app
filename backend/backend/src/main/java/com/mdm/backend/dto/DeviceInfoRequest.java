@@ -22,4 +22,6 @@ public class DeviceInfoRequest {
     private String serialNumber;
     private String uuid;
     private String imei;
+    private Double latitude;
+    private Double longitude;
 }

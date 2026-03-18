@@ -35,6 +35,12 @@ public class EnrollController {
                     .body("Invalid or already used enrollment token");
         }
 
+        // Check if device is already enrolled
+        if (enrolledDeviceRepository.findByDeviceId(request.getDeviceId()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Device is already enrolled");
+        }
+
         // Mark token as used
         token.setUsed(true);
         enrollmentTokenRepository.save(token);
@@ -58,7 +64,8 @@ public class EnrollController {
 
         // Check if already enrolled
         if (enrolledDeviceRepository.findByDeviceId(deviceId).isPresent()) {
-            return ResponseEntity.ok("Already enrolled");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Device is already enrolled");
         }
 
         // Enroll the device with QR tag

@@ -27,6 +27,8 @@ public class DeviceInfoController {
         deviceInfo.setSerialNumber(request.getSerialNumber());
         deviceInfo.setUuid(request.getUuid());
         deviceInfo.setImei(request.getImei());
+        deviceInfo.setLatitude(request.getLatitude());
+        deviceInfo.setLongitude(request.getLongitude());
         deviceInfoRepository.save(deviceInfo);
         return ResponseEntity.ok("Device info saved successfully");
     }
