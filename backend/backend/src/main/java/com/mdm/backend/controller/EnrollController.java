@@ -1,5 +1,5 @@
 package com.mdm.backend.controller;
-
+import java.util.Optional;
 import java.util.UUID;
 import java.util.Map;
 import java.util.List;
@@ -79,10 +79,12 @@ public class EnrollController {
 
     @DeleteMapping("/devices/{deviceId}")
     public ResponseEntity<String> removeDevice(@PathVariable String deviceId) {
-        enrolledDeviceRepository.findByDeviceId(deviceId).ifPresent(device -> {
-            enrolledDeviceRepository.delete(device);
-        });
-        return ResponseEntity.ok("Device removed successfully");
+        Optional<EnrolledDevice> device = enrolledDeviceRepository.findByDeviceId(deviceId);
+        if (device.isPresent()) {
+            enrolledDeviceRepository.deleteById(device.get().getId());
+            return ResponseEntity.ok("Device removed successfully");
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Device not found");
     }
 
     @PostMapping("/generate-token")
