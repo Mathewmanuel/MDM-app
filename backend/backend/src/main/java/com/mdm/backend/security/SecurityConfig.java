@@ -38,11 +38,13 @@ public class SecurityConfig {
                                 "/app-inventory",
                                 "/app-inventory/**",
                                 "/restrictions",
+                                "/devices/**",
                                 "/restrictions/**",
                                 "/generate-token",
                                 "/mdm.apk",
                                 "/static/**",
                                 "/**/*.apk"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
