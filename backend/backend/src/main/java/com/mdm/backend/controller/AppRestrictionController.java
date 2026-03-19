@@ -22,9 +22,15 @@ public class AppRestrictionController {
         return ResponseEntity.ok(restrictionRepository.findAll());
     }
 
+    @GetMapping("/{deviceId}")
+    public ResponseEntity<List<AppRestriction>> getByDevice(@PathVariable String deviceId) {
+        return ResponseEntity.ok(restrictionRepository.findByDeviceId(deviceId));
+    }
+
     @PostMapping
     public ResponseEntity<AppRestriction> addRestriction(@RequestBody Map<String, String> body) {
         AppRestriction r = new AppRestriction();
+        r.setDeviceId(body.get("deviceId"));
         r.setPackageName(body.get("packageName"));
         r.setAppName(body.get("appName"));
         r.setReason(body.get("reason"));

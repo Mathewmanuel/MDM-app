@@ -25,7 +25,6 @@ public class EnrollController {
 
     @PostMapping("/enroll")
     public ResponseEntity<String> enrollDevice(@Valid @RequestBody EnrollRequest request) {
-        // Validate token exists and has not been used
         EnrollmentToken token = enrollmentTokenRepository
                 .findByTokenAndUsedFalse(request.getEnrollmentToken())
                 .orElse(null);
@@ -35,17 +34,14 @@ public class EnrollController {
                     .body("Invalid or already used enrollment token");
         }
 
-        // Check if device is already enrolled
         if (enrolledDeviceRepository.findByDeviceId(request.getDeviceId()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Device is already enrolled");
         }
 
-        // Mark token as used
         token.setUsed(true);
         enrollmentTokenRepository.save(token);
 
-        // Enroll the device
         EnrolledDevice device = new EnrolledDevice();
         device.setDeviceId(request.getDeviceId());
         device.setEnrollmentToken(request.getEnrollmentToken());
@@ -62,13 +58,11 @@ public class EnrollController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Device ID required");
         }
 
-        // Check if already enrolled
         if (enrolledDeviceRepository.findByDeviceId(deviceId).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Device is already enrolled");
         }
 
-        // Enroll the device with QR tag
         EnrolledDevice device = new EnrolledDevice();
         device.setDeviceId(deviceId);
         device.setEnrollmentToken("QR_PROVISIONED");
@@ -81,6 +75,14 @@ public class EnrollController {
     @GetMapping("/devices")
     public ResponseEntity<List<EnrolledDevice>> getAllDevices() {
         return ResponseEntity.ok(enrolledDeviceRepository.findAll());
+    }
+
+    @DeleteMapping("/devices/{deviceId}")
+    public ResponseEntity<String> removeDevice(@PathVariable String deviceId) {
+        enrolledDeviceRepository.findByDeviceId(deviceId).ifPresent(device -> {
+            enrolledDeviceRepository.delete(device);
+        });
+        return ResponseEntity.ok("Device removed successfully");
     }
 
     @PostMapping("/generate-token")

@@ -13,6 +13,7 @@ public class AppRestriction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String deviceId;
     private String packageName;
     private String appName;
     private String reason;
