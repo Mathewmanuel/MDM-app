@@ -171,6 +171,7 @@ function FleetMap({ devices, deviceInfoMap, onDeviceClick, t }) {
         {devicesWithLocation.map(d => {
           const info = deviceInfoMap[d.deviceId];
           const health = getHealthStatus(d, deviceInfoMap, {});
+          // eslint-disable-next-line no-unused-vars
           const hc = HEALTH_COLORS[health];
           return (
             <Marker key={d.deviceId} position={[info.latitude, info.longitude]}>
