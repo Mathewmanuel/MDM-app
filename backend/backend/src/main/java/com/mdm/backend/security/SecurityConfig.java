@@ -29,24 +29,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/auth/login",
-                                "/enroll",
-                                "/enroll-qr",
-                                "/device-info",
-                                "/device-info/**",
-                                "/app-inventory",
-                                "/app-inventory/**",
-                                "/restrictions",
-                                "/devices/**",
-                                "/restrictions/**",
-                                "/generate-token",
-                                "/mdm.apk",
-                                "/static/**",
-                                "/**/*.apk"
-
-                        ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

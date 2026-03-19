@@ -19,7 +19,11 @@ const fetchJSON = async (url, options = {}) => {
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) { localStorage.removeItem("jwt_token"); window.location.reload(); }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return res.json();
+  }
+  return res.text();
 };
 
 const REQUIRED_FIELDS = ["model", "manufacturer", "osVersion", "sdkVersion", "uuid"];
@@ -284,14 +288,17 @@ export default function App() {
 
   const removeDevice = async (deviceId) => {
     try {
-      await fetchJSON(`${API}/devices/${deviceId}`, { method: "DELETE" });
+      const result = await fetchJSON(`${API}/devices/${deviceId}`, { method: "DELETE" });
+      console.log("Remove result:", result);
       setDevices(prev => prev.filter(d => d.deviceId !== deviceId));
       setView("devices");
       setSelectedDevice(null);
       setRemoveConfirm(null);
-    } catch (e) { setError("Failed to remove device"); }
+    } catch (e) {
+      console.log("Remove error:", e.message);
+      setError("Failed to remove device: " + e.message);
+    }
   };
-
   const addRestriction = async () => {
     if (!restrictionInput.packageName || !selectedDevice) return;
     try {
@@ -314,9 +321,8 @@ export default function App() {
   const deviceInfo = selectedDevice ? deviceInfoMap[selectedDevice.deviceId] : null;
   const appInventory = selectedDevice ? (appInventoryMap[selectedDevice.deviceId] || []) : [];
 
-  const searchedApps = appInventory.filter(a =>
-    a.appName?.toLowerCase().includes(appSearch.toLowerCase()) ||
-    a.packageName?.toLowerCase().includes(appSearch.toLowerCase())
+ const searchedApps = appInventory.filter(a =>
+    a.appName?.toLowerCase().includes(appSearch.toLowerCase())
   );
   const userApps = searchedApps.filter(a => !a.systemApp);
   const systemApps = searchedApps.filter(a => a.systemApp);
