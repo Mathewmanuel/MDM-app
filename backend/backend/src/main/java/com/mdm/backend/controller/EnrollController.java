@@ -1,5 +1,5 @@
 package com.mdm.backend.controller;
-import java.util.Optional;
+
 import java.util.UUID;
 import java.util.Map;
 import java.util.List;
@@ -34,7 +34,7 @@ public class EnrollController {
                     .body("Invalid or already used enrollment token");
         }
 
-        if (enrolledDeviceRepository.findByDeviceId(request.getDeviceId()).isPresent()) {
+        if (!enrolledDeviceRepository.findByDeviceId(request.getDeviceId()).isEmpty()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Device is already enrolled");
         }
@@ -58,7 +58,7 @@ public class EnrollController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Device ID required");
         }
 
-        if (enrolledDeviceRepository.findByDeviceId(deviceId).isPresent()) {
+        if (!enrolledDeviceRepository.findByDeviceId(deviceId).isEmpty()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Device is already enrolled");
         }
@@ -79,12 +79,12 @@ public class EnrollController {
 
     @DeleteMapping("/devices/{deviceId}")
     public ResponseEntity<String> removeDevice(@PathVariable String deviceId) {
-        Optional<EnrolledDevice> device = enrolledDeviceRepository.findByDeviceId(deviceId);
-        if (device.isPresent()) {
-            enrolledDeviceRepository.deleteById(device.get().getId());
-            return ResponseEntity.ok("Device removed successfully");
+        List<EnrolledDevice> devices = enrolledDeviceRepository.findByDeviceId(deviceId);
+        if (devices.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Device not found");
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Device not found");
+        enrolledDeviceRepository.deleteAll(devices);
+        return ResponseEntity.ok("Device removed successfully");
     }
 
     @PostMapping("/generate-token")
