@@ -40,7 +40,10 @@ public class SecurityConfig {
                                 "/generate-token",
                                 "/mdm.apk",
                                 "/static/**",
-                                "/**/*.apk"
+                                "/**/*.apk",
+                                "/mdm.apk",
+                                "/static/mdm.apk",
+                                "/*.apk"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
