@@ -602,7 +602,7 @@ export default function App() {
                     const health = getHealthStatus(d, deviceInfoMap, appInventoryMap);
                     const hc = HEALTH_COLORS[health];
                     const info = deviceInfoMap[d.deviceId];
-                    const missing = getMissingFields(info);
+                    
                     return (
                       <div key={d.id} className="device-card" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: 20 }}
                         onClick={() => loadDeviceDetails(d)}>
