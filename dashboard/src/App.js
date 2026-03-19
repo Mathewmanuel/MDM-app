@@ -328,7 +328,7 @@ export default function App() {
   const systemApps = searchedApps.filter(a => a.systemApp);
   const displayedApps = appFilter === "user" ? userApps : appFilter === "system" ? systemApps : searchedApps;
 
-  const missingFields = selectedDevice ? getMissingFields(deviceInfo) : [];
+  
   const healthCounts = { healthy: 0, warning: 0, critical: 0, info: 0 };
   devices.forEach(d => { healthCounts[getHealthStatus(d, deviceInfoMap, appInventoryMap)]++; });
   const filteredDevices = devices.filter(d => healthFilter === "all" ? true : getHealthStatus(d, deviceInfoMap, appInventoryMap) === healthFilter);
