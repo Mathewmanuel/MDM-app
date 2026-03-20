@@ -18,9 +18,10 @@ public class AppInventoryController {
     private final AppInventoryRepository appInventoryRepository;
 
     @PostMapping("/app-inventory")
-    public ResponseEntity<String> saveAppInventory(@Valid @RequestBody List<AppInventoryRequest> apps) {
-        if (!apps.isEmpty()) {
-            // Delete old records for this device first
+    public ResponseEntity<String> saveAppInventory(
+            @Valid @RequestBody List<AppInventoryRequest> apps,
+            @RequestParam(value = "fresh", defaultValue = "false") boolean fresh) {
+        if (!apps.isEmpty() && fresh) {
             String deviceId = apps.get(0).getDeviceId();
             appInventoryRepository.deleteByDeviceId(deviceId);
         }
