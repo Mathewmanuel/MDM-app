@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import com.mdm.backend.dto.EnrollRequest;
 import com.mdm.backend.model.EnrolledDevice;
 import com.mdm.backend.model.EnrollmentToken;
+import com.mdm.backend.repository.AppInventoryRepository;
+import com.mdm.backend.repository.DeviceInfoRepository;
 import com.mdm.backend.repository.EnrolledDeviceRepository;
 import com.mdm.backend.repository.EnrollmentTokenRepository;
 import jakarta.validation.Valid;
@@ -22,6 +24,8 @@ public class EnrollController {
 
     private final EnrolledDeviceRepository enrolledDeviceRepository;
     private final EnrollmentTokenRepository enrollmentTokenRepository;
+    private final AppInventoryRepository appInventoryRepository;
+    private final DeviceInfoRepository deviceInfoRepository;
 
     @PostMapping("/enroll")
     public ResponseEntity<String> enrollDevice(@Valid @RequestBody EnrollRequest request) {
@@ -79,12 +83,20 @@ public class EnrollController {
 
     @DeleteMapping("/devices/{deviceId}")
     public ResponseEntity<String> removeDevice(@PathVariable String deviceId) {
-        List<EnrolledDevice> devices = enrolledDeviceRepository.findByDeviceId(deviceId);
-        if (devices.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Device not found");
+        try {
+            List<EnrolledDevice> devices = enrolledDeviceRepository.findByDeviceId(deviceId);
+            if (devices.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Device not found");
+            }
+            // Delete all related data
+            appInventoryRepository.deleteByDeviceId(deviceId);
+            deviceInfoRepository.deleteByDeviceId(deviceId);
+            enrolledDeviceRepository.deleteAll(devices);
+            return ResponseEntity.ok("Device removed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error removing device: " + e.getMessage());
         }
-        enrolledDeviceRepository.deleteAll(devices);
-        return ResponseEntity.ok("Device removed successfully");
     }
 
     @PostMapping("/generate-token")
